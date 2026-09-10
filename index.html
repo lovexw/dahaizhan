@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>大海战 · H5 版</title>
+<title>大海战 · 中文版</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚓</text></svg>">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -29,7 +29,6 @@
   header h1 { font-size: 1.25rem; color: #6ec6ff; letter-spacing: 2px; font-weight: 600; }
   header span { font-size: 0.72rem; color: #4b6a8a; }
   #stage {
-    /* 原始舞台 640x420,按比例适配可视区域 */
     width: min(calc(100vw - 20px), calc((100dvh - 118px) * (640 / 420)));
     aspect-ratio: 640 / 420;
     border-radius: 10px;
@@ -39,9 +38,7 @@
   }
   #stage:fullscreen { width: 100vw; height: 100dvh; border-radius: 0; }
   #stage:-webkit-full-screen { width: 100vw; height: 100dvh; border-radius: 0; }
-  #player-holder, #player-holder ruffle-player {
-    width: 100%; height: 100%; display: block;
-  }
+  #player-holder, #player-holder ruffle-player { width: 100%; height: 100%; display: block; }
   #toolbar {
     padding: 12px 16px 4px;
     display: flex;
@@ -78,12 +75,43 @@
     font-size: 0.85rem;
     line-height: 1.6;
   }
+  /* 手机虚拟方向键(布阵阶段旋转军舰用) */
+  #dpad {
+    display: none;
+    position: fixed;
+    right: 14px;
+    bottom: 14px;
+    width: 132px;
+    height: 132px;
+    z-index: 90;
+  }
+  #dpad button {
+    position: absolute;
+    width: 44px; height: 44px;
+    border-radius: 10px;
+    border: 1px solid rgba(110, 198, 255, 0.35);
+    background: rgba(10, 30, 55, 0.72);
+    color: #bfe3ff;
+    font-size: 20px;
+    font-weight: 700;
+    cursor: pointer;
+    user-select: none;
+    touch-action: manipulation;
+  }
+  #dpad button:active { background: rgba(110, 198, 255, 0.35); }
+  #dpad .left  { left: 0;  top: 44px; }
+  #dpad .right { right: 0; top: 44px; }
+  #dpad .down  { left: 44px; bottom: 0; }
+  #dpad .off   { left: 44px; top: 44px; border-radius: 22px; font-size: 12px; }
+  @media (pointer: coarse) {
+    #dpad { display: block; }
+  }
 </style>
 </head>
 <body>
 <header>
   <h1>⚓ 大海战</h1>
-  <span>原版 Flash · Ruffle 模拟</span>
+  <span>中文版 · 原版复刻</span>
 </header>
 
 <div id="stage">
@@ -94,8 +122,16 @@
 <div id="toolbar">
   <button id="btn-full" type="button">⛶ 全屏</button>
   <button id="btn-restart" type="button">↻ 重新开始</button>
+  <button id="btn-dpad" type="button" style="display:none">⌨ 方向键</button>
 </div>
-<p id="hint">鼠标点击操作,手机上直接点按屏幕即可 · 若浏览器拦截了声音,点击一次画面即可开启</p>
+<p id="hint">先在左栏选军舰,用左右键转向,再点海面布阵 · 点右侧敌军海域开炮</p>
+
+<div id="dpad">
+  <button class="left" type="button" aria-label="向左旋转">◀</button>
+  <button class="right" type="button" aria-label="向右旋转">▶</button>
+  <button class="down" type="button" aria-label="下">▼</button>
+  <button class="off" type="button" aria-label="隐藏方向键">隐藏</button>
+</div>
 
 <noscript>
   <p style="padding:16px;color:#ff9e9e">本页面需要启用 JavaScript 才能运行游戏。</p>
@@ -108,7 +144,16 @@
   var stage = document.getElementById("stage");
   var holder = document.getElementById("player-holder");
   var errorBox = document.getElementById("error-box");
+  var dpad = document.getElementById("dpad");
+  var btnDpad = document.getElementById("btn-dpad");
   var player = null;
+
+  // canvas 渲染器:让游戏内动态文字(将军播报/船名/输入框)使用系统字体显示中文
+  window.RufflePlayer = window.RufflePlayer || {};
+  window.RufflePlayer.config = {
+    deviceFontRenderer: "canvas",
+    letterbox: "off"
+  };
 
   function showError(msg) {
     errorBox.style.display = "block";
@@ -120,7 +165,7 @@
     player = ruffle.createPlayer();
     holder.appendChild(player);
     player.load({
-      url: "dahaizhan.swf",
+      url: "dahaizhan_cn.swf",
       base: "./",
       autoplay: "on",
       unmuteOverlay: "visible",
@@ -142,7 +187,6 @@
     }
   });
 
-  // 重新开始:销毁播放器后重建
   document.getElementById("btn-restart").addEventListener("click", function () {
     if (player) { player.remove(); player = null; }
     errorBox.style.display = "none";
@@ -153,7 +197,7 @@
     }
   });
 
-  // 全屏(iOS Safari 不支持 div 全屏时静默降级)
+  // 全屏
   document.getElementById("btn-full").addEventListener("click", function () {
     var fsEl = document.fullscreenElement || document.webkitFullscreenElement;
     if (fsEl) {
@@ -166,6 +210,52 @@
       if (p && p.catch) { p.catch(function () {}); }
     }
   });
+
+  /* 手机虚拟方向键:向播放器派发方向键事件(布阵阶段旋转军舰) */
+  function sendKey(code) {
+    var ev = new KeyboardEvent("keydown", {
+      key: code === 37 ? "ArrowLeft" : "ArrowRight",
+      code: code === 37 ? "ArrowLeft" : "ArrowRight",
+      keyCode: code,
+      which: code,
+      bubbles: true,
+      cancelable: true
+    });
+    var el = player || stage;
+    el.dispatchEvent(ev);
+    var up = new KeyboardEvent("keyup", {
+      key: code === 37 ? "ArrowLeft" : "ArrowRight",
+      code: code === 37 ? "ArrowLeft" : "ArrowRight",
+      keyCode: code,
+      which: code,
+      bubbles: true,
+      cancelable: true
+    });
+    el.dispatchEvent(up);
+  }
+
+  dpad.querySelector(".left").addEventListener("click", function () { sendKey(37); });
+  dpad.querySelector(".right").addEventListener("click", function () { sendKey(39); });
+  dpad.querySelector(".down").addEventListener("click", function () { sendKey(40); });
+
+  function toggleDpad(force) {
+    var show = force !== undefined ? force : dpad.style.display !== "block";
+    dpad.style.display = show ? "block" : "none";
+    btnDpad.textContent = show ? "⌨ 隐藏方向键" : "⌨ 方向键";
+  }
+
+  // 触屏设备默认显示;桌面隐藏(用物理键盘)
+  if (window.matchMedia && window.matchMedia("(pointer: coarse)").matches) {
+    dpad.style.display = "block";
+    btnDpad.style.display = "inline-block";
+    btnDpad.textContent = "⌨ 隐藏方向键";
+  } else {
+    btnDpad.style.display = "inline-block";
+    btnDpad.textContent = "⌨ 方向键";
+    btnDpad.addEventListener("click", function () { toggleDpad(); });
+  }
+
+  dpad.querySelector(".off").addEventListener("click", function () { toggleDpad(false); });
 })();
 </script>
 </body>
