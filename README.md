@@ -43,6 +43,10 @@ tools/upgrade_swf6.py  # SWF5→SWF6 结构升级(UTF-8 字符串 + ClipActions 
 ```
 
 关键技术点:
+- **随机数函数修复**:原 SWF 的 `getRandomvalue` 用了 `("" + Rng).length` 这种依赖
+  AS1 宽松语义的写法,ffdec 反编译往返会把它错误渲染成 `"" + Rng.length`(对数字
+  取属性 = undefined),重编译后随机数恒为 NaN——电脑 AI 坐标全部越界、炮击溢出
+  棋盘、胜负判定错乱。构建脚本里已替换为标准的 `Math.floor(Math.random() * Rng) + min`。
 - **SWF 版本 5→6**:为了让中文字符串以 UTF-8 编码生效,必须升级版本号,同时转换
   ClipActions 的 UI16→UI32 事件标志结构(`upgrade_swf6.py` 处理,含自测);
 - **中文渲染**:游戏使用设备字体(Helvetica 等),Ruffle 的 `deviceFontRenderer: "canvas"`

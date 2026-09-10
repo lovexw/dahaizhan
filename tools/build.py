@@ -68,6 +68,13 @@ patch(FRAME1, [
     ('admData[8] = "Bingo !";', 'admData[8] = "中了!";'),
     ('admData[9] = "Okay ! !";', 'admData[9] = "好样的!!";'),
     ('admData[10] = "HIT !";', 'admData[10] = "命中!";'),
+    # 修复 ffdec 反编译往返引入的 BUG:
+    # 原字节码是 ("" + Rng).length(拼接后取位数),反编译器错渲染成 "" + Rng.length
+    # (对数字取 length = undefined),重编译后随机数恒为 NaN,导致电脑 AI 坐标全部
+    # 越界(炮击溢出棋盘+连发判负)。改为无歧义的标准均匀随机实现。
+    ('''   var RngLen = "" + Rng.length;
+   var rndVal = Math.floor(Math.random() * Math.pow(10,RngLen)) % Rng + parseInt(minVal);''',
+     '''   var rndVal = Math.floor(Math.random() * Rng) + parseInt(minVal);'''),
 ])
 
 patch('DefineSprite_82/frame_1/DoAction.as', [
